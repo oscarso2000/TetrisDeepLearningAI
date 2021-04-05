@@ -305,29 +305,15 @@ class Tetris:
         # Update board and calculate score        
         self.board = self._add_piece_to_board(self._get_rotated_piece(), self.current_pos)
         lines_cleared, self.board = self._clear_lines(self.board)
-        floor_blocks, wall_blocks = self._get_positive_heuristics(self.board)
-   
-        floor_blocks = 3 * floor_blocks 
-        wall_blocks = 2.5 * wall_blocks 
-        # [lines, holes, total_bumpiness, sum_height]
-        score_array = self._get_board_props(self.board)
-        
-        line_score = 1 + (lines_cleared ** 4) * Tetris.BOARD_WIDTH
-        hole_score = -0.1 * score_array[1]
-        bump_score = -0.1 * score_array[2]
-        height_score = -0.1 * (score_array[3])
-        
-        score = line_score 
-        # self.score += score
-        # score = hole_score + bump_score + height_score
+        score = 1 + (lines_cleared ** 3) * Tetris.BOARD_WIDTH
         self.score += score
+
         # Start new round
         self._new_round()
         if self.game_over:
             score -= 2
 
         return score, self.game_over
-
 
     def render(self):
         '''Renders the current board'''

@@ -4,9 +4,9 @@ from datetime import datetime
 from statistics import mean, median
 import random
 from logs import CustomTensorBoard
+# from scores import LogScores
 from tqdm import tqdm
 from keras.models import load_model
-        
 
 # Run dqn with Tetris
 def dqn():
@@ -34,6 +34,7 @@ def dqn():
 
     log_dir = f'logs/tetris-nn={str(n_neurons)}-mem={mem_size}-bs={batch_size}-e={epochs}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
     log = CustomTensorBoard(log_dir=log_dir)
+    # log = LogScores()
 
     scores = []
 
@@ -70,22 +71,21 @@ def dqn():
         # Train
         if episode % train_every == 0:
             agent.train(batch_size=batch_size, epochs=epochs)
+            # log._plot()
 
 
-    agent.model.save('trained_models/dqa_model.h5')
-        
+        # Save for plot
+        if episode % 5 == 0:
+            # Logs
+            avg_score = mean(scores[-5:])
+            min_score = min(scores[-5:])
+            max_score = max(scores[-5:])
+            log._add(episode, avg_score, max_score, min_score)
+            log.log(episode, avg_score, max_score, min_score)
 
-        # Logs
-        if log_every and episode and episode % log_every == 0:
-            avg_score = mean(scores[-log_every:])
-            min_score = min(scores[-log_every:])
-            max_score = max(scores[-log_every:])
-
-            log.log(episode, avg_score=avg_score, min_score=min_score,
-                    max_score=max_score)
-
-
-
+        # # Save model
+        if episode % 50 == 0:
+            agent.model.save('trained_models/rb_dqa_model.h5')
 
 if __name__ == "__main__":
     dqn()

@@ -4,6 +4,8 @@ from keras.callbacks import ModelCheckpoint
 from collections import deque
 import numpy as np
 import random
+import tensorflow as tf
+from datetime import datetime
 
 # Deep Q Learning Agent + Maximin
 #
@@ -39,10 +41,13 @@ class DQNAgent:
         assert len(activations) == len(n_neurons) + 1
 
         self.state_size = state_size
+        self.mem_size = 20000
+        self.epochs = 1
         self.memory = deque(maxlen=mem_size)
         self.discount = discount
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
+        self.batch_size = 512
         self.epsilon_decay = (self.epsilon - self.epsilon_min) / (epsilon_stop_episode)
         self.n_neurons = n_neurons
         self.activations = activations
@@ -52,9 +57,12 @@ class DQNAgent:
             replay_start_size = mem_size / 2
         self.replay_start_size = replay_start_size
         self.model = self._build_model()
-        self.cp_callbacks = ModelCheckpoint(filepath = "model_weights/dqa/dqa_weights.h5",  # Change according to model
-                                            save_weights_only = True,
-                                            verbose = 0)
+        self.log_dir = f'logs/tetris-nn={str(self.n_neurons)}-mem={self.mem_size}-bs={self.batch_size}-e={self.epochs}-{datetime.now().strftime("%Y_%m_%d")}'
+        self.cp_callbacks = [
+                            tf.keras.callbacks.ModelCheckpoint(filepath='trained_models/rb_dql_agent.h5'),
+                            # tf.keras.callbacks.TensorBoard(log_dir=self.log_dir),
+                            tf.keras.callbacks.CSVLogger('scores/test_dql.csv'),]
+
 
     def _build_model(self):
         '''Builds a Keras deep neural network model'''
@@ -140,7 +148,7 @@ class DQNAgent:
                 y.append(new_q)
 
             # Fit the model to the given values
-            self.model.fit(np.array(x), np.array(y), batch_size=batch_size, epochs=epochs, callbacks=[self.cp_callbacks], verbose=0)
+            self.model.fit(np.array(x), np.array(y), batch_size=batch_size, epochs=epochs, verbose=0) # , callbacks = [self.cp_callbacks]
 
             # Update the exploration variable
             if self.epsilon > self.epsilon_min:
