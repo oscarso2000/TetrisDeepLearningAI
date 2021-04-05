@@ -8,11 +8,12 @@ from keras.models import load_model
 import numpy as np
 
 RENDER_DELAY = None
+RENDER = True
 
 class TestAgent:
 
     def __init__(self):
-        self.model = load_model('test_model.h5')
+        self.model = load_model('trained_models/rb_dqa_agent.h5')
         self.state_size = 4
 
     def predict_value(self, state):
@@ -39,7 +40,6 @@ if __name__ == "__main__":
     current_state = env.reset()
     done = False
     steps = 0
-    render = True
 
     # Game
     while not done :
@@ -52,10 +52,9 @@ if __name__ == "__main__":
                 best_action = action
                 break
 
-        reward, done = env.play(best_action[0], best_action[1], render=render,
+        reward, done = env.play(best_action[0], best_action[1], render=RENDER,
                                 render_delay=RENDER_DELAY)
         
-        # agent.add_to_memory(current_state, next_states[best_action], reward, done)
         current_state = next_states[best_action]
         steps += 1
 
