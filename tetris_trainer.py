@@ -1,4 +1,5 @@
 
+
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
@@ -33,8 +34,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+
 '''
-This script is used apply genes to from the training script
+This script is used to quickly train and get genes to then apply to the normal tetris
 '''
 
 from random import randrange as rand
@@ -44,8 +46,10 @@ config = {
   'cell_size':  20,
   'cols':    10,
   'rows':    24,
-  'delay':  750,
-  'maxfps':  30
+  'delay':  50,
+  'maxfps':  math.inf
+  # 'maxfps':  30
+
 }
 
 colors = [
@@ -134,7 +138,6 @@ class TetrisApp(object):
                                                  # block them.
     self.actions = []
     self.needs_actions = True
-
     self.init_game()
 
   '''
@@ -245,27 +248,52 @@ class TetrisApp(object):
         2. create new piece
         3. Check for row completion
   ''' 
+  # def drop(self):
+  #   if not self.gameover and not self.paused:
+  #     self.stone_y += 1
+  #     if check_collision(self.board,
+  #                        self.stone,
+  #                        (self.stone_x, self.stone_y)):
+  #       self.board = join_matrixes(
+  #         self.board,
+  #         self.stone,
+  #         (self.stone_x, self.stone_y))
+  #       self.new_stone()
+  #       self.needs_actions = True
+  #       while True:
+  #         for i, row in enumerate(self.board[:-1]):
+  #           if 0 not in row:
+  #             self.score += 10
+  #             self.board = remove_row(
+  #               self.board, i)
+  #             break
+  #         else:
+  #           break
+
   def drop(self):
     if not self.gameover and not self.paused:
-      self.stone_y += 1
-      if check_collision(self.board,
-                         self.stone,
-                         (self.stone_x, self.stone_y)):
-        self.board = join_matrixes(
-          self.board,
-          self.stone,
-          (self.stone_x, self.stone_y))
-        self.new_stone()
-        self.needs_actions = True
-        while True:
-          for i, row in enumerate(self.board[:-1]):
-            if 0 not in row:
-              self.score += 10
-              self.board = remove_row(
-                self.board, i)
-              break
-          else:
+      while True:
+        self.stone_y += 1
+        if check_collision(self.board,
+                           self.stone,
+                           (self.stone_x, self.stone_y)):
+          self.board = join_matrixes(
+            self.board,
+            self.stone,
+            (self.stone_x, self.stone_y))
+            
+          self.new_stone()
+          self.needs_actions = True
+          break
+      while True:
+        for i, row in enumerate(self.board[:-1]):
+          if 0 not in row:
+            self.score += 10
+            self.board = remove_row(
+              self.board, i)
             break
+        else:
+          break
  
   '''
     Rotate stone if no collision
@@ -327,26 +355,37 @@ Press space to continue""")
       pygame.display.update()
      
       # check for events 
-      for event in pygame.event.get():
-        if event.type == pygame.USEREVENT+1:
-          self.drop()
-        elif event.type == pygame.QUIT:
+
+      '''for event in pygame.event.get():
+        #if event.type == pygame.USEREVENT+1:
+          #self.drop()
+        if event.type == pygame.QUIT:
           self.quit()
         elif event.type == pygame.KEYDOWN:
           for key in key_actions:
             if event.key == eval("pygame.K_"
             +key):
-              key_actions[key]()
+              key_actions[key]()'''
 
-      # AI input	
-      if( len(self.actions)>0 ):
-        action = self.actions[0].upper()
+
+      for action in self.actions:
+        action = action.upper()
         if action in key_actions:
           key_actions[action]()
-        self.actions.pop(0)
+      self.actions = []
+
+      if not self.needs_actions:
+        self.drop()
+        
+
+    '''if( len(self.actions)>0 ):
+      action = self.actions[0].upper()
+      if action in key_actions:
+        key_actions[action]()
+        self.actions.pop(0)'''
         
           
-      dont_burn_my_cpu.tick(config['maxfps'])
+      #dont_burn_my_cpu.tick(config['maxfps'])
 
   def get_state(self):
     return {"board": numpy.copy(self.board), 
@@ -360,6 +399,7 @@ Press space to continue""")
   def add_actions(self, new_actions):
     self.needs_actions = False
     self.actions = new_actions
+    #print(self.actions)
 
 if __name__ == '__main__':
   App = TetrisApp()
