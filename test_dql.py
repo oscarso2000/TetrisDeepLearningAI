@@ -7,7 +7,7 @@ import tensorflow as tf
 class TestAgent:
 
     def __init__(self):
-        self.model = tf.keras.models.load_model('dql_model.h5')
+        self.model = tf.keras.models.load_model('dql_model_final.h5')
         self.state_size = 4
 
     def predict_value(self, state):
@@ -28,12 +28,8 @@ class TestAgent:
                 max_value = value[0]
                 best_state = state
 
-        for action, state in states.items():
-            if state == best_state:
-                best_action = action
-                break
 
-        return best_action, best_state, max_value
+        return best_state, max_value
 
 
 if __name__ == "__main__":

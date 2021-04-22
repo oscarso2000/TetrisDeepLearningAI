@@ -6,6 +6,7 @@ import numpy as np
 import random
 import tensorflow as tf
 from datetime import datetime
+import math
 
 # Deep Q Learning Agent + Maximin
 #
@@ -39,7 +40,7 @@ class DQNAgent:
                  loss='mse', optimizer='adam', replay_start_size=None):
 
         assert len(activations) == len(n_neurons) + 1
-
+        self.file_path = '/tmp/checkpoint'
         self.state_size = state_size
         self.mem_size = 20000
         self.epochs = 1
@@ -59,7 +60,7 @@ class DQNAgent:
         self.model = self._build_model()
         self.log_dir = f'logs/tetris-nn={str(self.n_neurons)}-mem={self.mem_size}-bs={self.batch_size}-e={self.epochs}-{datetime.now().strftime("%Y_%m_%d")}'
         self.cp_callbacks = [
-                            tf.keras.callbacks.ModelCheckpoint(filepath='trained_models/rb_dql_agent.h5'),
+                            # tf.keras.callbacks.ModelCheckpoint(filepath= self.file_path),
                             # tf.keras.callbacks.TensorBoard(log_dir=self.log_dir),
                             tf.keras.callbacks.CSVLogger('scores/test_dql.csv'),]
 
@@ -103,36 +104,27 @@ class DQNAgent:
             return self.predict_value(state)
 
 
-    def best_state(self, states):
-        '''Returns the best state for a given collection of states'''
-        max_value = None
-        best_state = None
-
-        if random.random() <= self.epsilon:
-            return random.choice(list(states))
-
-        else:
-            for state in states:
-                value = self.predict_value(np.reshape(state, [1, self.state_size]))
-                if not max_value or value > max_value:
-                    max_value = value
-                    best_state = state
-
-        return best_state
-
+    def best_state_random(self, states):
+        '''Returns the random state for a given collection of states'''
+        best_state = random.choice(list(states.values()))
+        # RULE BASED HEURISTIC 
+        reward = (1 + (best_state[0] ** 2) * 10) + (-0.51 * best_state[3] ) + (-0.35* best_state[1]) + (-0.18* best_state[2])
+        # REGULAR HEURISTIC 
+        # reward = 1 + ((best_state[0] ** 2) * 10
+        return best_state, reward 
 
     def train(self, batch_size=32, epochs=3):
         '''Trains the agent'''
         n = len(self.memory)
-    
+
         if n >= self.replay_start_size and n >= batch_size:
-
+            # print(1)
             batch = random.sample(self.memory, batch_size)
-
+            # print(2)
             # Get the expected score for the next states, in batch (better performance)
             next_states = np.array([x[1] for x in batch])
             next_qs = [x[0] for x in self.model.predict(next_states)]
-
+            # print(3)
             x = []
             y = []
 
@@ -146,10 +138,50 @@ class DQNAgent:
 
                 x.append(state)
                 y.append(new_q)
-
+            # print(4)
+            try:
+                # print(5)
             # Fit the model to the given values
-            self.model.fit(np.array(x), np.array(y), batch_size=batch_size, epochs=epochs, verbose=0) # , callbacks = [self.cp_callbacks]
+                # w = np.array(x)
+                # z = np.array(y)
+                # for i in range(len(w)):
+                #     print(w[i], z[i])
+               
+                self.model.fit(np.array(x), np.array(y), batch_size=batch_size, epochs=epochs, verbose=0) # , callbacks = [self.cp_callbacks]
+                # Update the exploration variable
+                if self.epsilon > self.epsilon_min:
+                    self.epsilon -= self.epsilon_decay
+                # print("Trained...")
 
-            # Update the exploration variable
-            if self.epsilon > self.epsilon_min:
-                self.epsilon -= self.epsilon_decay
+            except:
+                print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                # print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                # print(np.array(x))
+                # print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
+                # print(np.array(y))
+
+
+
+    def best_state(self, states):
+        '''Returns the best state for a given collection of states'''
+        max_value = -math.inf
+        best_state = None
+        # if random.random() <= self.epsilon:
+        # # if random.random() <= 0.1:
+        #     best_state = random.choice(list(states.values()))
+        #     # RULE BASED HEURISTIC 
+        #     # reward = (1 + (best_state[0] ** 2) * 10) + (-0.51 * best_state[3] ) + (-0.35* best_state[1]) + (-0.18* best_state[2])
+        #     # REGULAR HEURISTIC 
+        #     reward = 1 + ((best_state[0] ** 2) * 10
+        #     return best_state, reward 
+
+        # else:
+            
+        #     for state in states.values():
+                
+        #         value = self.predict_value(np.reshape(state, [1, self.state_size]))
+        #         if not max_value or value > max_value:
+        #             max_value = value[0]
+        #             best_state = state
+        #      ### TODO : LOOK AT ERROR FOR PREDICT
+        #     return best_state, max_value 
