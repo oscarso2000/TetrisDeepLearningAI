@@ -4,13 +4,19 @@ from datetime import datetime
 from statistics import mean, median
 import random
 from logs import CustomTensorBoard
-# from scores import LogScores
 from tqdm import tqdm
 from keras.models import load_model
+from tetris_trainer import TetrisApp
+
 
 # Run dqn with Tetris
 def dqn():
-    env = Tetris()
+    app = TetrisApp()
+    ai = TetrisAI(app)
+
+    threading.Thread(target=app.run).start()
+
+
     episodes = 2000
     max_steps = None
     epsilon_stop_episode = 1500
@@ -42,11 +48,11 @@ def dqn():
         current_state = env.reset()
         done = False
         steps = 0
-
-        if render_every and episode % render_every == 0:
-            render = True
-        else:
-            render = False
+        render = False 
+        # if render_every and episode % render_every == 0:
+        #     render = True
+        # else:
+        #     render = False
 
         # Game
         while not done and (not max_steps or steps < max_steps):
@@ -84,8 +90,8 @@ def dqn():
             log.log(episode, avg_score, max_score, min_score)
 
         # # Save model
-        if episode % 50 == 0:
-            agent.model.save('trained_models/rb_dqa_model.h5')
+        # if episode % 50 == 0:
+        #     agent.model.save('trained_models/rb_dqa_model.h5')
 
 if __name__ == "__main__":
     dqn()
