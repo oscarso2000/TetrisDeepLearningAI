@@ -43,10 +43,13 @@ f = open("Data.txt", "w+")
 '''
 class TetrisAI(object):
   
-  def __init__(self, tetris_app, agent):
+  def __init__(self, tetris_app, agent, step_size, model_name, logs_file):
     self.name = "Crehg"
     self.tetris_app = tetris_app
     self.agent = agent
+    self.model_name = 'trained_models/' + model_name
+    self.logs_file = logs_file
+    self.step_size = step_size
     self.screen = pygame.display.set_mode((200, 480 ))
 
     ''' set fetures wanted here MAKE SURE TO CHANGE FUNCTIONS FOR EVALUATION BELOW'''
@@ -761,14 +764,14 @@ class TetrisAI(object):
     return cur_state
 
   def start_dql(self, training = True, episodes = 5000):
-    # pbar = tqdm(total = 5000+1)
+    pbar = tqdm(total = 5000+1)
     n_neurons = [32, 32]
     mem_size = 20000
     batch_size = 512
     log_dir = f'logs/tetris-nn={str(n_neurons)}-mem={mem_size}-bs={batch_size}-e={1}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
     log = CustomTensorBoard(log_dir=log_dir)
     episode = 1
-    train_every = 1
+    train_every = self.step_size
     scores = []
     count_rows_cleared = 0
     while training:
@@ -792,50 +795,53 @@ class TetrisAI(object):
         #   avg_score = mean(scores[-5:])
         #   min_score = min(scores[-5:])
         #   max_score = max(scores[-5:])
-        #   log._add(episode, avg_score, max_score, min_score)
-        #   log.log(episode, avg_score, max_score, min_score)
+          # log._add(episode, avg_score, max_score, min_score, self.logs_file)
+          # log.log(episode, avg_score, max_score, min_score)
 
-        # # Train Model  
-        # if episode % train_every == 0: 
-        #   self.agent.train(batch_size=512, epochs=1)
+        # Train Model  
+        if episode % train_every == 0: 
+          self.agent.train(batch_size=512, epochs=1)
 
         # Save model
-        # if episode % 100 == 0:
-        if episode % 20 == 0:
-          # self.agent.model.save('dql_model_regular.h5')
-          # print(" MEAN SCORES: ", mean(scores[-20:]))
-          # print("Epsilon: ", self.agent.epsilon)
-          print("Episode: ", episode)
-          print("Total Rows Cleared: ", count_rows_cleared)
-          print("------------------------------")
+        if episode % 50 == 0:
+          self.agent.model.save(self.model_name)
+          print(" MEAN SCORES: ", mean(scores[-20:]))
+          print("Epsilon: ", self.agent.epsilon)
+          # print("Episode: ", episode)
+          # print("Total Rows Cleared: ", count_rows_cleared)
+          # print("------------------------------")
 
         # Update
         time.sleep(0.5)
         episode += 1
-        # pbar.update(1)
+        pbar.update(1)
 
       # if not done 
-      current_state = self._get_board_props()
-      next_states = self.get_next_states()
-      # best_state, reward = self.agent.best_state(next_states)
-      best_state, reward = self.agent.best_state_random(next_states)
-      best_action = None 
-      for action, state in next_states.items():
-          if state == best_state:
-              best_action = action
-              break
-      # try:
-      count_rows_cleared += current_state[0]
-      actions = self.get_actions(best_action)
-      self.tetris_app.add_actions(actions)
-      # Update
-      # self.agent.add_to_memory(current_state, next_states[best_action], reward, cur_state["gameover"])
-     
-      # except:
-      #   print("Didnt fucking work...")
-      #   print("Best State + Reward : ", best_state, reward)
-      #   print("Current State", cur_state["board"])
-      #   print("-----------------------------------")
+
+      try:
+        current_state = self._get_board_props()
+        next_states = self.get_next_states()
+        best_state, reward = self.agent.best_state(next_states)
+        best_action = None 
+        for action, state in next_states.items():
+            if state == best_state:
+                best_action = action
+                break
+
+        actions = self.get_actions(best_action)
+        self.tetris_app.add_actions(actions)
+        # Update
+        self.agent.add_to_memory(current_state, next_states[best_action], reward, cur_state["gameover"])
+
+
+
+      # count_rows_cleared += current_state[0]
+      except:
+        print("Didnt fucking work...")
+        print("Best State + Reward : ", best_state, reward)
+        print("Best Action: ", best_action)
+        print("Current State", cur_state["board"])
+        print("-----------------------------------")
 
 
   def test_dql(self, testing = True):
