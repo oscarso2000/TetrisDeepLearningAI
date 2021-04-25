@@ -14,9 +14,9 @@ class CustomTensorBoard(TensorBoard):
     def set_model(self, model):
         pass
 
-    def _add(self,episodes_, mean_, max_, min_):
+    def _add(self,episodes_, mean_, max_, min_, file_name):
         self.dataframe = self.dataframe.append({'episodes_':episodes_, 'mean_': mean_, 'max_': max_, 'min_': min_}, ignore_index=True)
-        self.dataframe.to_csv('scores/test_scores_regular_dql.csv', index = False)
+        self.dataframe.to_csv(file_name, index = False)
 
     def log(self, episode,avg_score, max_score, min_score):
         with self.writer.as_default():

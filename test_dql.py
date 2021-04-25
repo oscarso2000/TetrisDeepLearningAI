@@ -6,8 +6,8 @@ import tensorflow as tf
 
 class TestAgent:
 
-    def __init__(self):
-        self.model = tf.keras.models.load_model('dql_model_final.h5')
+    def __init__(self, model):
+        self.model = tf.keras.models.load_model(model)
         self.state_size = 4
 
     def predict_value(self, state):

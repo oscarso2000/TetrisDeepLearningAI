@@ -62,7 +62,13 @@ pip install tensorflow
 
 - At the bottom of the [main.py](main.py) file, comment out the function you want to run.
 
-    - train_dql_agent()
+    - train_dql_agent(discount, epsilon_stop_episode, learning_rate, step_size, model, logs_file)
+        - discount: Gamma value. close to 0 favors immidiate rewards. close to 1 favors long term rewards
+        - epsilon_stop_episode: When we stop "exploring"
+        - Learning rate: How rewards update. If learning rate is 1, use first model
+        - Step size: How often model trains after enough memory is collected 
+        - Model: models file name. Saved under [train_models/](trained_models)
+        - logs_file: records episode #, min, max, average. Saved under [scores/](scores)
         - creates a Tetris environment from [tetris_trainer.py](tetris_trainer.py) 
         - create an AI from [dqn_agent](dqn_agent.py)
         - calls start_dql() which trains the model, located in [train_ai.py](train_ai.py)
