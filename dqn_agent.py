@@ -33,11 +33,20 @@ class DQNAgent:
         optimizer (obj): Otimizer used
         replay_start_size: Minimum size needed to train
     '''
-
-    def __init__(self, state_size, mem_size=10000, discount,
-                 epsilon=1, epsilon_min=0, epsilon_stop_episode,
-                 n_neurons=[32,32], activations=['relu', 'relu', 'linear'],
-                 loss='mse', optimizer='adam', replay_start_size=None, learning_rate):
+ #   mem_size=10000,
+    def __init__(self, 
+        state_size, 
+        n_neurons, 
+        activations,
+        epsilon_stop_episode,
+        mem_size,
+        discount,
+        replay_start_size,
+        learning_rate, 
+        epsilon=1,
+        epsilon_min=0, 
+        loss='mse',
+        optimizer='adam'):
 
         assert len(activations) == len(n_neurons) + 1
         self.file_path = '/tmp/checkpoint'
