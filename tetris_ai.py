@@ -764,7 +764,7 @@ class TetrisAI(object):
     return cur_state
 
   def start_dql(self, training = True, episodes = 5000):
-    pbar = tqdm(total = 5000+1)
+    pbar = tqdm(total = 10000+1)
     n_neurons = [32, 32]
     mem_size = 20000
     batch_size = 512
@@ -790,13 +790,14 @@ class TetrisAI(object):
         actions.append("space")
         self.tetris_app.add_actions(actions)
         
-        # if episode % 20 == 0:
-        # # Logs
-        #   avg_score = mean(scores[-5:])
-        #   min_score = min(scores[-5:])
-        #   max_score = max(scores[-5:])
-          # log._add(episode, avg_score, max_score, min_score, self.logs_file)
-          # log.log(episode, avg_score, max_score, min_score)
+        if episode % 20 == 0:
+        # Logs
+          avg_score = mean(scores[-5:])
+          min_score = min(scores[-5:])
+          max_score = max(scores[-5:])
+          # Add TIME?
+          log._add(episode, avg_score, max_score, min_score, self.logs_file)
+          log.log(episode, avg_score, max_score, min_score)
 
         # Train Model  
         if episode % train_every == 0: 

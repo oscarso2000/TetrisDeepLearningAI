@@ -43,7 +43,8 @@ def test_dql(model):
 
 if __name__ == '__main__':
 
-# discount, epsilon_stop_episode, learning_rate, step_size, model, logs_file
+  # discount, epsilon_stop_episode, learning_rate, step_size, model, logs_file
   train_dql(0.95, 1400, 0.001, 4, '95-1400-001-4-best.h5' , 'scores/95-1400-001-4-best.csv')
+  
   # test_dql('dql_model_regular.h5')
 
