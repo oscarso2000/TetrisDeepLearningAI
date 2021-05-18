@@ -17,12 +17,6 @@ def dqn():
     app = TetrisApp()
     ai = TetrisAI(app)
     threading.Thread(target=app.run).start()
-    # num_units = 100
-    # ai.num_units = num_units
-    # ai.gen_weights = OrderedDict()
-    # ai.cur_gen = 1
-    # ai.cur_unit = -1
-    # ai.mutation_val = mutation_val
     episodes = 200
     max_steps = None
     epsilon_stop_episode = 1500
