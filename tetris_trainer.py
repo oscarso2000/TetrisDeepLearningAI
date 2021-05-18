@@ -1,18 +1,5 @@
-
-
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
-
-# Very simple tetris implementation
-# 
-# Control keys:
-# Down - Drop stone faster
-# Left/Right - Move stone
-# Up - Rotate Stone clockwise
-# Escape - Quit game
-# P - Pause game
-#
-# Have fun!
 
 # Copyright (c) 2010 "Kevin Chabowski"<kevin@kch42.de>
 # 
@@ -34,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
 '''
 This script is used to quickly train and get genes to then apply to the normal tetris
 '''
@@ -48,8 +34,6 @@ config = {
   'rows':    24,
   'delay':  50,
   'maxfps':  math.inf
-  # 'maxfps':  30
-
 }
 
 colors = [
@@ -109,7 +93,7 @@ def remove_row(board, row):
   del board[row]
   return [[0 for i in range(config['cols'])]] + board
 
-# Used for adding a stone to the board
+# Used for adding a tetromino to the board
 def join_matrixes(mat1, mat2, mat2_off):
   off_x, off_y = mat2_off
   for cy, row in enumerate(mat2):
@@ -145,28 +129,28 @@ class TetrisApp(object):
   places shape at the top of the boar din the middle
   checks if collision - if yes game over
   '''  
-  def new_stone(self):
-    # every stone increases score (fitness)
+  def new_tetromino(self):
+    # every tetromino increases score (fitness)
     self.score += 1
 
-    self.stone = tetris_shapes[rand(len(tetris_shapes))]
-    self.stone_x = int(config['cols'] / 2 - len(self.stone[0])/2)
-    self.stone_y = 0
+    self.tetromino = tetris_shapes[rand(len(tetris_shapes))]
+    self.tetromino_x = int(config['cols'] / 2 - len(self.tetromino[0])/2)
+    self.tetromino_y = 0
     
     if check_collision(self.board,
-                       self.stone,
-                       (self.stone_x, self.stone_y)):
+                       self.tetromino,
+                       (self.tetromino_x, self.tetromino_y)):
       self.gameover = True
 
   '''
     Starts a new game
       - new board
-      - new stone
+      - new tetromino
   '''  
   def init_game(self):
     self.score = 0
     self.board = new_board()
-    self.new_stone()
+    self.new_tetromino()
 
     return
 
@@ -224,15 +208,15 @@ class TetrisApp(object):
   # move a piece horizontally
   def move(self, delta_x):
     if not self.gameover and not self.paused:
-      new_x = self.stone_x + delta_x
+      new_x = self.tetromino_x + delta_x
       if new_x < 0:
         new_x = 0
-      if new_x > config['cols'] - len(self.stone[0]):
-        new_x = config['cols'] - len(self.stone[0])
+      if new_x > config['cols'] - len(self.tetromino[0]):
+        new_x = config['cols'] - len(self.tetromino[0])
       if not check_collision(self.board,
-                             self.stone,
-                             (new_x, self.stone_y)):
-        self.stone_x = new_x
+                             self.tetromino,
+                             (new_x, self.tetromino_y)):
+        self.tetromino_x = new_x
 
 
   # quit game
@@ -244,45 +228,23 @@ class TetrisApp(object):
   '''
     Try moving piece down
       - if collision:
-        1. add stone to board
+        1. add tetromino to board
         2. create new piece
         3. Check for row completion
   ''' 
-  # def drop(self):
-  #   if not self.gameover and not self.paused:
-  #     self.stone_y += 1
-  #     if check_collision(self.board,
-  #                        self.stone,
-  #                        (self.stone_x, self.stone_y)):
-  #       self.board = join_matrixes(
-  #         self.board,
-  #         self.stone,
-  #         (self.stone_x, self.stone_y))
-  #       self.new_stone()
-  #       self.needs_actions = True
-  #       while True:
-  #         for i, row in enumerate(self.board[:-1]):
-  #           if 0 not in row:
-  #             self.score += 10
-  #             self.board = remove_row(
-  #               self.board, i)
-  #             break
-  #         else:
-  #           break
-
   def drop(self):
     if not self.gameover and not self.paused:
       while True:
-        self.stone_y += 1
+        self.tetromino_y += 1
         if check_collision(self.board,
-                           self.stone,
-                           (self.stone_x, self.stone_y)):
+                           self.tetromino,
+                           (self.tetromino_x, self.tetromino_y)):
           self.board = join_matrixes(
             self.board,
-            self.stone,
-            (self.stone_x, self.stone_y))
+            self.tetromino,
+            (self.tetromino_x, self.tetromino_y))
             
-          self.new_stone()
+          self.new_tetromino()
           self.needs_actions = True
           break
       while True:
@@ -296,15 +258,15 @@ class TetrisApp(object):
           break
  
   '''
-    Rotate stone if no collision
+    Rotate tetromino if no collision
   ''' 
-  def rotate_stone(self):
+  def rotate_tetromino(self):
     if not self.gameover and not self.paused:
-      new_stone = rotate_clockwise(self.stone)
+      new_tetromino = rotate_clockwise(self.tetromino)
       if not check_collision(self.board,
-                             new_stone,
-                             (self.stone_x, self.stone_y)):
-        self.stone = new_stone
+                             new_tetromino,
+                             (self.tetromino_x, self.tetromino_y)):
+        self.tetromino = new_tetromino
  
   # pause game 
   def toggle_pause(self):
@@ -327,7 +289,7 @@ class TetrisApp(object):
       'LEFT':    lambda:self.move(-1),
       'RIGHT':  lambda:self.move(+1),
       'DOWN':    self.drop,
-      'UP':    self.rotate_stone,
+      'UP':    self.rotate_tetromino,
       'p':    self.toggle_pause,
       'SPACE':  self.start_game
     }
@@ -349,9 +311,9 @@ Press space to continue""")
           self.center_msg("Paused")
         else:
           self.draw_matrix(self.board, (0,0))
-          self.draw_matrix(self.stone,
-                           (self.stone_x,
-                            self.stone_y))
+          self.draw_matrix(self.tetromino,
+                           (self.tetromino_x,
+                            self.tetromino_y))
       pygame.display.update()
      
       # check for events 
@@ -376,22 +338,12 @@ Press space to continue""")
 
       if not self.needs_actions:
         self.drop()
-        
-
-    '''if( len(self.actions)>0 ):
-      action = self.actions[0].upper()
-      if action in key_actions:
-        key_actions[action]()
-        self.actions.pop(0)'''
-        
-          
-      #dont_burn_my_cpu.tick(config['maxfps'])
 
   def get_state(self):
     return {"board": numpy.copy(self.board), 
-            "stone": numpy.copy(self.stone),
-            "stone_x": self.stone_x,
-            "stone_y": self.stone_y,
+            "tetromino": numpy.copy(self.tetromino),
+            "tetromino_x": self.tetromino_x,
+            "tetromino_y": self.tetromino_y,
             "score": self.score,
             "gameover": self.gameover,
             "needs_actions": self.needs_actions}

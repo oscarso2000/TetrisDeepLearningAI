@@ -1,5 +1,3 @@
-
-
 from collections import defaultdict, OrderedDict
 import pygame, numpy, time, threading, random, sys
 from logs import CustomTensorBoard
@@ -25,7 +23,7 @@ def check_collision(board, shape, offset):
         return True
   return False
 
-# Used for adding a stone to the board
+# Used for adding a tetromino to the board
 def join_matrixes(mat1, mat2, mat2_off):
   off_x, off_y = mat2_off
   for cy, row in enumerate(mat2):
@@ -36,10 +34,8 @@ def join_matrixes(mat1, mat2, mat2_off):
         print("out of bounds join")
   return mat1
 
-f = open("Data.txt", "w+")
-
 '''
-  TetriAI
+  TetrisAI
 '''
 class TetrisAI(object):
   
@@ -50,11 +46,7 @@ class TetrisAI(object):
     self.model_name = 'trained_models/' + model_name
     self.logs_file = logs_file
     self.step_size = step_size
-    self.screen = pygame.display.set_mode((200, 480 ))
-
-    ''' set fetures wanted here MAKE SURE TO CHANGE FUNCTIONS FOR EVALUATION BELOW'''
-    #self.features = ("max_height", "cumulative_height", "relative_height", "roughness", "hole_count", "rows_cleared")
-    self.features = ("cumulative_height", "roughness", "hole_count", "rows_cleared")
+    self.screen = pygame.display.set_mode((200, 480))
 
     self.tetris_shapes = [
         [[1, 1, 1],
@@ -95,229 +87,68 @@ class TetrisAI(object):
               20),0)
 
   '''
-    Getters and setters
+    Setters
   '''
-
-  def set_weights(self, weight_dict):
-    self.weights = defaultdict(int, weight_dict)
-
   def set_board(self, board):
     self.board = board
 
-  def get_board(self):
-    if not hasattr(self, "board"):
-      raise ValueError("TerisAI does not have a board")
+  def set_tetromino(self, tetromino, tetromino_x, tetromino_y):
+    self.tetromino = tetromino
+    self.tetromino_x = tetromino_x
+    self.tetromino_y = tetromino_y
 
-    return self.board
-
-  def set_stone(self, stone, stone_x, stone_y):
-    self.stone = stone
-    self.stone_x = stone_x
-    self.stone_y = stone_y
-
-  def get_stone(self):
-    if not hasattr(self, "stone"):
-      raise ValueError("TertisAI does not have a stone")
-
-    return (self.stone, self.stone_x, self.stone_y)
-
-  '''
-    Keyboard/Action controller
-  '''
-
-  def make_move(self, training=True):
-    
-    while True:
-      cur_state = self.tetris_app.get_state()
-
-      self.set_board(cur_state["board"])
-      self.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
-  
-      if not cur_state["needs_actions"]:
-        continue
-
-      actions = []
-      print(cur_state["gameover"])
-      if cur_state["gameover"] and training:
-        print("SCORE")
-        print(cur_state["score"])
-        print("GAME OVER")
-        print("--------------")
-        self.load_next_unit( cur_state["score"] )
-        actions.append("space")
-
- 
-  
-      possible_boards = self.get_possible_boards()
-      board_scores = self.get_board_scores(possible_boards)
-      actions.extend(self.get_actions_from_scores(board_scores))
-      print(board_scores)
-      print(actions)
-      print(" ------------------------ ")
-      self.tetris_app.add_actions(actions)
-
-
-    #self.make_move()      
-
-    
   '''
     Actual AI stuff
   '''
-
   # move a piece horizontally
-  def move(self, desired_x, board, stone, stone_x, stone_y):
+  def move(self, desired_x, board, tetromino, tetromino_x, tetromino_y):
 
-    while(stone_x != desired_x):
-      dist = desired_x - stone_x
+    while(tetromino_x != desired_x):
+      dist = desired_x - tetromino_x
       delta_x = int(dist/abs(dist))
 
-      new_x = stone_x + delta_x
+      new_x = tetromino_x + delta_x
       if not check_collision(board,
-                             stone,
-                             (new_x, stone_y)):
-        stone_x = new_x
+                             tetromino,
+                             (new_x, tetromino_y)):
+        tetromino_x = new_x
       else:
         break
-    return stone_x
+    return tetromino_x
  
   '''
-    Rotate stone if no collision
+    Rotate tetromino if no collision
   ''' 
-  def rotate_stone(self, board, stone, stone_x, stone_y):
+  def rotate_tetromino(self, board, tetromino, tetromino_x, tetromino_y):
 
-    new_stone = rotate_clockwise(stone)
+    new_tetromino = rotate_clockwise(tetromino)
     if not check_collision(board,
-                           new_stone,
-                           (stone_x, stone_y)):
-      return new_stone
-    return stone
+                           new_tetromino,
+                           (tetromino_x, tetromino_y)):
+      return new_tetromino
+    return tetromino
 
   '''
-    (Modified)
     Try moving piece down
       - if collision:
-        1. add stone to board
+        1. add tetromino to board
         2. Check for row completion
         3. if no collision drop again
   ''' 
-  def drop(self, board, stone, stone_x, stone_y):
+  def drop(self, board, tetromino, tetromino_x, tetromino_y):
 
-    stone_y += 1
+    tetromino_y += 1
     if check_collision(board,
-                       stone,
-                       (stone_x, stone_y)):
+                       tetromino,
+                       (tetromino_x, tetromino_y)):
       board = join_matrixes(
         board,
-        stone,
-        (stone_x, stone_y))
+        tetromino,
+        (tetromino_x, tetromino_y))
     else:
-      self.drop(board, stone, stone_x, stone_y)
-    return board, stone_y
-
-  def get_possible_boards(self):
-    if not (hasattr(self, "board") and hasattr(self, "stone")):
-      raise ValueError("either board or stone do not exist for TetrisAI")
-    
-    cur_state = self.tetris_app.get_state()
-
-    self.set_board(cur_state["board"])
-    self.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
-
-    temp_board = numpy.copy(self.board)
-    temp_stone = numpy.copy(self.stone)
-
-    temper = numpy.copy(temp_stone)
-
-    temp_x = self.stone_x
-    temp_y = self.stone_y
-
-    # contains all the board orientations possible with the current stone
-    boards = []
-
-    for j in range(4):
-
-
-      for i in range(len(self.board[0])):
-
-        temp_x = self.move(i, temp_board, temp_stone, temp_x, temp_y)
-        temp_board, temp_y = self.drop(temp_board, temp_stone, temp_x, temp_y)
-
-        print(temp_board)
-        boards.append(temp_board)
-
-        temp_board = numpy.copy(self.board)
-        temp_x = self.stone_x
-        temp_y = self.stone_y
-
-      temp_stone = self.rotate_stone(temp_board, temp_stone, temp_x, temp_y)
-
-
-    
-    '''self.stone = temp_stone
-    self.board = temp_board
-    self.stone_x = temp_x
-    self.stone_y = temp_y'''
-
-    return boards
-
-  def get_board_scores(self, boards):
-    scores = []
-
-    for board in boards:
-      new_score = self.eval_board(board)
-      scores.append( new_score )
-
-    return scores 
-
-  def get_actions_from_scores(self, scores):
-    actions = []
-
-    # CHANGE THIS LATER
-    best_score = scores.index( max(scores) )
-
-    # rotate to proper orientation
-    rotations = [ "up" for i in range( best_score//len(self.board[0]) )]
-    actions.extend(rotations)
-
-    # move to proper x pos
-    desired_x = best_score % len(self.board[0]) 
-    wanted_move = ""  
-    if( desired_x > self.stone_x ):
-      wanted_move = "right" 
-    elif(desired_x < self.stone_x):
-      wanted_move = "left"
-    
-    moves = [ wanted_move for i in range( abs(desired_x - self.stone_x) ) ]
-    actions.extend(moves)
-
-    # move to proper y pos
-    levels =  self.get_column_heights(self.board)
-    desired_y = levels[desired_x] + len(self.stone) 
-
-    world_y = len(self.board) - self.stone_y
-    num_drops = world_y - desired_y
-    drops = [ "down" for i in range( num_drops ) ]
-    #actions.extend(drops)
-
-    return actions
-
-  def eval_board(self, board):
-
-    if not (hasattr(self, "weights")):
-      raise ValueError("TetrisAI has no weights")
-
-
-    ''' Make sure these function reflect the features you are using above '''
-    score = []
-    #score.append( self.get_max_height(board) * self.weights["max_height"])
-    score.append( self.get_cumulative_height(board) * self.weights["cumulative_height"])
-    #score.append( self.get_relative_height(board) * self.weights["relative_height"])
-    score.append( self.get_roughness(board) * self.weights["roughness"])
-    score.append( self.get_hole_count(board) * self.weights["hole_count"])
-    score.append( self.get_rows_cleared(board) * self.weights["rows_cleared"])
-
-    return sum(score)
-
+      self.drop(board, tetromino, tetromino_x, tetromino_y)
+    return board, tetromino_y
+  
   '''
     Gets the height of each column
   '''
@@ -359,15 +190,11 @@ class TetrisAI(object):
       absolute difference between a row at i and i+1
   '''
   def get_roughness(self, board):
-
     levels = self.get_column_heights(board)
-
-    # get roughness
     roughness = 0
-
+    
     for x in range(len(levels)-1):
       roughness += abs(levels[x] - levels[x+1]) 
-
     return roughness
 
   '''
@@ -377,7 +204,6 @@ class TetrisAI(object):
   '''
   def get_hole_count(self, board):
     levels = self.get_column_heights(board) 
-
     holes = 0
 
     for y, row in enumerate(board[::-1]):
@@ -385,7 +211,6 @@ class TetrisAI(object):
         # if below max column height and is a zero
         if y < levels[x] and val==0:
           holes += 1 
-
     return holes
 
   '''
@@ -399,321 +224,160 @@ class TetrisAI(object):
     for row in board:
       if 0 not in row:
         rows_cleared += 1
-     
     return rows_cleared 
 
+  '''
+    Check how many tiles are touching the floor
+  '''
+  def get_floor_blocks(self,board):
+    floor = board[23]
+    counter = 0
+    for i in floor:
+      if i != 0:
+        counter +=1
+    return counter
 
   '''
-    Heuristic for hillclimbing
-    best_board = a*agg_height + b*rows_cleared + c*holes + d* bumpiness
+    Check how many tiles are touching the wall
   '''
-  def get_best_board(self, boards):
-    self.weights = dict()
-    self.weights["cumulative_height"] = -0.51
-    self.weights["rows_cleared"] = 0.76
-    self.weights["hole_count"] = -0.35
-    self.weights["roughness"] = -0.18
-    best_board = 0
-    best_h = -10000000
-    for board in boards:
-        cum_height = self.get_cumulative_height(board)
-        rows_cleared = self.get_rows_cleared(board)
-        hole_count = self.get_hole_count(board)
-        rough = self.get_roughness(board)
-        heuristic = (self.weights["cumulative_height"]* cum_height) + (self.weights["rows_cleared"] * rows_cleared) + (self.weights["hole_count"] * hole_count) + (self.weights["roughness"] * rough)
-        if heuristic > best_h:
-          best_h = heuristic 
-          best_board = board
-
-
-    return best_board  
-
-     
+  def get_wall_blocks(self, board):
+    wall_blocks = 0
+    for index, row in enumerate(board):
+      if row[0] != 0:
+        wall_blocks += 1
+      if row[-1] != 0:
+        wall_blocks +=1
+    return wall_blocks
 
   '''
-    genetic algorithm code
+    Check how many contiguous sections there are using DFS
   '''
-
-
-  '''
-  Creates a gene with random weights
-  if seeded it creates the weights based off the seeded gene
-  '''
-  def random_weights(self, seeded=False):
-   
-    weights = ()
-
-    if seeded != False:
-      for val in seeded:
-        weights = weights + (random.uniform(-0.1, 0.1) + val,)
-      return weights
-
-    for f in self.features:
-      weights = weights + (random.uniform(-1, 1),)
- 
-    return weights
-
-  def load_weights(self, weight_tuple):
-    self.weights = dict()
-
-    for fn, f in enumerate(self.features):
-      self.weights[f] = weight_tuple[fn]
-      print(weight_tuple[fn])
-
-  '''
-  Creates the initial population and starts running
-
-  num_units = the number of genes per generation (the initial generation is 10 times this value)
-  mutation_val = the range for which a gene can be mutated
-  seed = If you want to test a specific gene
-  '''
-  def start(self, num_units, mutation_val=0.05, seed=False):
-
-    if seed:
-      if not (isinstance(seed, tuple) or len(seed) != len(self.features)):
-        raise ValueError('Seed not properly formatted. Make sure it is a tuple and has {} elements').format(len(self.features))
-      self.load_weights(seed)
-      print("NOT TRAINING")
-      print("===================")
-      self.make_move(training=False) 
-    else:
-      self.num_units = num_units
-      self.gen_weights = OrderedDict()
-      self.cur_gen = 1
-      self.cur_unit = -1
-      self.mutation_val = mutation_val
-  
-      for i in range(num_units * 10):
-        self.gen_weights[ self.random_weights() ] = 0
-  
-      self.load_next_unit(0)
-  
-      self.make_move()
-
-  '''
-  Saves data from previous geneartion, preforms selection, crossover, and mutation
-  '''
-  def new_generation(self):
-
-    weight_values = sorted( enumerate(self.gen_weights.values()), key= lambda x:x[1], reverse=True)
-    print("\n\n")
-    gen_score = sum(x[1] for x in weight_values)/len(weight_values)
-    f.write("Generation {} score: {}\n".format(self.cur_gen,gen_score))
-    print("Generation Score: ", gen_score )
-    print("New Generation") 
-    print("\n\n")
-    self.cur_gen += 1   
-
-    gen_keys = list(self.gen_weights.keys())
-    new_gen = []
-
-    # selection
-    selected_units = [ gen_keys[tup[0]] for tup in weight_values[:self.num_units//len(self.board[0])] ]
-     
-    # crossover
-    for i in range( len(selected_units)-1 ):
-      unit1 = selected_units[i]
-      unit2 = selected_units[i+1]
-
-      new_unit1, new_unit2 = self.mix_genes(unit1, unit2)
-
-      new_gen.append( new_unit1 ) 
-      new_gen.append( new_unit2 ) 
-      
-    self.gen_weights = OrderedDict()
-    self.cur_unit = -1
-
-    for new_unit in new_gen:
-      self.gen_weights[ new_unit ] = 0
-
-    # mutation
-    while len(self.gen_weights) < self.num_units:
-      self.gen_weights[ self.mutate_gene( random.choice(new_gen) ) ] = 0
-
-
-  def mix_genes(self, gene1, gene2):
-    if(len(gene1) != len(gene2)):
-      raise ValueError('A very specific bad thing happened.') 
-
-
-    num_features = len(self.features)
-    new_genes_to_switch = numpy.random.choice( range(num_features), num_features//2, replace=False )  
-
-    new_gene1 = ()
-    new_gene2 = ()
-
-
-    for i in range( len(gene1) ):
-      if i in new_genes_to_switch:
-        new_gene1 = new_gene1 + ( gene2[i], )
-        new_gene2 = new_gene2 + ( gene1[i], )
-      else:
-        new_gene1 = new_gene1 + ( gene1[i], )
-        new_gene2 = new_gene2 + ( gene2[i], )
-       
-    return (new_gene1, new_gene2) 
-
-  def mutate_gene(self, gene):
-
-
-    num_features = len(self.features)
-
-    # try for mutation with 5% change of success
-    if random.randint(0,100) > 5:
-      return gene
-
-    genes_to_mutate = numpy.random.choice( range(num_features), random.randint(0, num_features), replace=False )
-
-    new_gene = ()
-
-    for i in range(len(gene)):
-      mut_val = 0 
-      if i in genes_to_mutate:
-        mut_val = random.uniform(-self.mutation_val, self.mutation_val)
-      new_gene = new_gene + ( gene[i] + mut_val,)
-
-    return new_gene
-
-  # load a gene into the ai to be used for Tetris
-  def load_next_unit(self, score):
-
-    if self.cur_unit >= 0:
-      cur_unit = list(self.gen_weights.keys())[self.cur_unit]
-      self.gen_weights[cur_unit] = score
-      print("score: ", score) 
-      print("--------------------------------------------------")
-
-    self.cur_unit += 1
-    print("Gen: ", self.cur_gen,"|| Unit: ", self.cur_unit)
-    if self.cur_unit >= len(self.gen_weights):
-      self.new_generation()
-    else:
-      new_unit = list(self.gen_weights.keys())[self.cur_unit]
-      print("       ", new_unit)
-      self.load_weights(new_unit)
-
-
+  def get_contig_sections(self, board):
+    # visited = [[False for _ in range(len(board[0]))] for _ in range(len(board))]
+    visited = []
+    counter = 0
+    for i in range(len(board)):
+      visited.append([True if board[i][j]==0 else False for j in range(len(board[i]))])
+    for i, row in enumerate(board):
+      for j, element in enumerate(row):
+        if visited[i][j] == False:
+          stack = []
+          stack.append((i,j))
+          while (len(stack)):
+            si, sj = stack[-1]
+            stack.pop()
+            if (not visited[si][sj]):
+              visited[si][sj] = True
+            # for node in self.adj[s]:
+            #Down
+            if si != len(board)-1:
+              if(not visited[si+1][sj]):
+                stack.append((si+1,sj))
+            #Right
+            if sj != len(board[si])-1:
+              if(not visited[si][sj+1]):
+                stack.append((si,sj+1))
+            #Up
+            if si != 0:
+              if(not visited[si-1][sj]):
+                stack.append((si-1,sj))
+            #Left
+            if sj != 0:
+              if(not visited[si][sj-1]):
+                stack.append((si,sj-1))
+          counter += 1
+    return counter
 
   '''
     Deep Q Learning Code 
   '''
-
   def quit(self):
-    self.tetris_app.quit()
+        self.tetris_app.quit()
 
-  def get_state_size(self):
-    '''Size of the state'''
-    return 4
-
-
-  # get self.board_score 
   def _get_board_props(self):
     cum_height = self.get_cumulative_height(self.board)
     rows_cleared = self.get_rows_cleared(self.board)
     hole_count = self.get_hole_count(self.board)
     rough = self.get_roughness(self.board)
-    return [rows_cleared, hole_count, rough, cum_height]
-
+    floor_blocks = self.get_floor_blocks(self.board)
+    contig_sections = self.get_contig_sections(self.board)
+    return [rows_cleared, hole_count, rough, cum_height, floor_blocks, contig_sections]
 
   def get_next_states(self):
     states = {}
-    if not (hasattr(self, "board") and hasattr(self, "stone")):
-      raise ValueError("either board or stone do not exist for TetrisAI")
+    if not (hasattr(self, "board") and hasattr(self, "tetromino")):
+      raise ValueError("either board or tetromino do not exist for TetrisAI")
     
     cur_state = self.tetris_app.get_state()
 
     self.set_board(cur_state["board"])
-    self.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
+    self.set_tetromino(cur_state["tetromino"], cur_state["tetromino_x"], cur_state["tetromino_y"])
 
     temp_board = numpy.copy(self.board)
-    temp_stone = numpy.copy(self.stone)
-    stone_number = self.get_stone_number(temp_stone)
-    temper = numpy.copy(temp_stone)
+    temp_tetromino = numpy.copy(self.tetromino)
+    tetromino_number = self.get_tetromino_number(temp_tetromino)
+    temper = numpy.copy(temp_tetromino)
 
-    temp_x = self.stone_x
-    temp_y = self.stone_y
+    temp_x = self.tetromino_x
+    temp_y = self.tetromino_y
 
-    # contains all the board orientations possible with the current stone
+    # contains all the board orientations possible with the current tetromino
     boards = []
     rotation = 0
     rot = 0
     
-    if temp_stone[0][0] == 7:
+    if temp_tetromino[0][0] == 7:
       num_rot = 1
-
-    elif temp_stone[0][0] == 6:
+    elif temp_tetromino[0][0] == 6:
       num_rot = 2
-
     else:
       num_rot = 4
 
     for j in range(num_rot):
-
       for i in range(len(self.board[0])):
-
-        temp_x = self.move(i, temp_board, temp_stone, temp_x, temp_y)
-        temp_board, temp_y = self.drop(temp_board, temp_stone, temp_x, temp_y)
+        temp_x = self.move(i, temp_board, temp_tetromino, temp_x, temp_y)
+        temp_board, temp_y = self.drop(temp_board, temp_tetromino, temp_x, temp_y)
 
         cum_height = self.get_cumulative_height(temp_board)
         rows_cleared = self.get_rows_cleared(temp_board)
         hole_count = self.get_hole_count(temp_board)
         rough = self.get_roughness(temp_board)
+        floor_blocks = self.get_floor_blocks(temp_board)
+        contig_sections = self.get_contig_sections(temp_board)
         boards.append(temp_board)
-        states[(i, rotation)] = [rows_cleared, hole_count, rough, cum_height]
+        states[(i, rotation)] = [rows_cleared, hole_count, rough, cum_height, floor_blocks, contig_sections]
+        
         temp_board = numpy.copy(self.board)
-        temp_x = self.stone_x
-        temp_y = self.stone_y
+        temp_x = self.tetromino_x
+        temp_y = self.tetromino_y
 
-      temp_stone = self.rotate_stone(temp_board, temp_stone, temp_x, temp_y)
+      temp_tetromino = self.rotate_tetromino(temp_board, temp_tetromino, temp_x, temp_y)
       rotation += 90
       rot += 1
-    # return boards
     return states
 
 
-  def get_stone_number(self, stone):
-        if stone[0][0] == 6:
+  def get_tetromino_number(self, tetromino):
+        if tetromino[0][0] == 6:
           return 5
-        if stone[0][0] == 1:
+        if tetromino[0][0] == 1:
           return 0
-     
-        if stone[0][1] == 2:
-          return 1 
-    
-        if stone[0][0] == 3:
+        if tetromino[0][1] == 2:
+          return 1
+        if tetromino[0][0] == 3:
           return 2
-       
-        if stone[0][0] == 4:
+        if tetromino[0][0] == 4:
           return 3
-     
-  
-        if stone[0][0] == 7:
+        if tetromino[0][0] == 7:
           return 6
-
-        if stone[1][0] == 5:
+        if tetromino[1][0] == 5:
           return 4
-
         else:
-          print("brick not loaded............")
-          return 100
-
-
-
-  # def _get_board_scores(self, boards):
-  #   scores = []
-
-  #   for board in boards:
-  #     new_score = self.eval_board(board)
-  #     scores.append( new_score )
-
-  #   return scores
-    
-
+          return -1
+        
   def get_actions(self, best_action):
     actions = []
-    '''  
-    
-    '''
+
     # CHANGE THIS LATER
     # best_score = scores.index( max(scores) )
     rot = best_action[1] // 90
@@ -726,32 +390,24 @@ class TetrisAI(object):
     # move to proper x pos
     desired_x = best_action[0]
     wanted_move = ""  
-    if( desired_x > self.stone_x ):
+    if( desired_x > self.tetromino_x ):
       wanted_move = "right" 
-    elif(desired_x < self.stone_x):
+    elif(desired_x < self.tetromino_x):
       wanted_move = "left"
     
-    moves = [ wanted_move for i in range( abs(desired_x - self.stone_x) ) ]
+    moves = [ wanted_move for i in range( abs(desired_x - self.tetromino_x) ) ]
     actions.extend(moves)
 
     # move to proper y pos
     levels =  self.get_column_heights(self.board)
-    desired_y = levels[desired_x] + len(self.stone) 
+    desired_y = levels[desired_x] + len(self.tetromino) 
 
-    world_y = len(self.board) - self.stone_y
+    world_y = len(self.board) - self.tetromino_y
     num_drops = world_y - desired_y
     drops = [ "down" for i in range( num_drops ) ]
     #actions.extend(drops)
 
     return actions
-
-
-
-  # def get_reward(self):
-
-
-
-
 
   '''
   Create the dql algorithm
@@ -760,7 +416,7 @@ class TetrisAI(object):
   def load_board(self):
     cur_state = self.tetris_app.get_state()
     self.set_board(cur_state["board"])
-    self.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
+    self.set_tetromino(cur_state["tetromino"], cur_state["tetromino_x"], cur_state["tetromino_y"])
     return cur_state
 
   def start_dql(self, training = True, episodes = 5000):
@@ -778,7 +434,7 @@ class TetrisAI(object):
 
       cur_state = self.tetris_app.get_state()
       self.set_board(cur_state["board"])
-      self.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
+      self.set_tetromino(cur_state["tetromino"], cur_state["tetromino_x"], cur_state["tetromino_y"])
   
       if not cur_state["needs_actions"]:
         continue
@@ -846,14 +502,13 @@ class TetrisAI(object):
 
 
   def test_dql(self, testing = True):
-    
     scores = []
     while testing:
       cur_state = self.load_board()
       cur_state = self.tetris_app.get_state()
 
       self.set_board(cur_state["board"])
-      self.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
+      self.set_tetromino(cur_state["tetromino"], cur_state["tetromino_x"], cur_state["tetromino_y"])
   
       if not cur_state["needs_actions"]:
         continue
@@ -868,8 +523,6 @@ class TetrisAI(object):
         # print("Episode:", episode, "SCORE", self.tetris_app.score, len(self.agent.memory))
         time.sleep(0.5)
 
-
-
       current_state = self._get_board_props()
       next_states = self.get_next_states()
       best_state, reward = self.agent.best_state(next_states)
@@ -880,5 +533,3 @@ class TetrisAI(object):
               break
       actions = self.get_actions(best_action)
       self.tetris_app.add_actions(actions)
-
-      # TODO: record several games and average performance 

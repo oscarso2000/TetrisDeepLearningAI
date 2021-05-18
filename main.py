@@ -22,9 +22,9 @@ def train_dql(discount, epsilon_stop_episode, learning_rate, step_size, model, l
   render_delay = None
   activations = ['relu', 'relu', 'linear']
   app = TetrisApp()
-  agent = DQNAgent(4, n_neurons, activations,
+  agent = DQNAgent(6, n_neurons, activations,
                   epsilon_stop_episode, mem_size,
-                  discount, replay_start_size, learning_rate)
+                  discount, replay_start_size, learning_rate) #first parameter is state_size
   ai = TetrisAI(app, agent, step_size, model, logs_file)
 
   threading.Thread(target=app.run).start()
@@ -44,7 +44,7 @@ def test_dql(model):
 if __name__ == '__main__':
 
   # discount, epsilon_stop_episode, learning_rate, step_size, model, logs_file
-  train_dql(0.95, 1400, 0.001, 4, '95-1400-001-4-best.h5' , 'scores/95-1400-001-4-best.csv')
+  train_dql(0.9, 1600, 0.05, 1, 'newHeuristic3.h5' , 'scores/newHeuristic3.csv')
   
   # test_dql('dql_model_regular.h5')
 
