@@ -8,18 +8,9 @@ import tensorflow as tf
 from datetime import datetime
 import math
 
-# Deep Q Learning Agent + Maximin
-#
-# This version only provides only value per input,
-# that indicates the score expected in that state.
-# This is because the algorithm will try to find the
-# best final state for the combinations of possible states,
-# in constrast to the traditional way of finding the best
-# action for a particular state.
 class DQNAgent:
 
     '''Deep Q Learning Agent + Maximin
-
     Args:
         state_size (int): Size of the input domain
         mem_size (int): Size of the replay buffer
@@ -102,7 +93,6 @@ class DQNAgent:
         return model
 
 
-
     def add_to_memory(self, current_state, next_state, reward, done):
         '''Adds a play to the replay memory buffer'''
         self.memory.append((current_state, next_state, reward, done))
@@ -132,8 +122,9 @@ class DQNAgent:
         best_state = None
         if random.random() <= self.epsilon:
             best_state = random.choice(list(states.values()))
-            # reward = (1 + (best_state[0] ** 2) * 10) + (-0.51 * best_state[3] ) + (-0.35* best_state[1]) + (-0.18* best_state[2])
-            reward = 1 + ((best_state[0] ** 2) * 10)
+            #Reward Heuristics are changed here
+            #[rows_cleared, hole_count, rough, cum_height] + [floor_blocks, get_contig_sections]
+            reward = (1 + (best_state[0] ** 2) * 15) + (-7.51 * best_state[3] ) + (-10.2* best_state[1]) + (-2.18* best_state[2]) + (best_state[4] * 15) + (best_state[5]* -5.55)
 
             return best_state, reward
 
@@ -152,13 +143,9 @@ class DQNAgent:
         n = len(self.memory)
 
         if n >= self.replay_start_size and n >= batch_size:
-            # print(1)
             batch = random.sample(self.memory, batch_size)
-            # print(2)
-            # Get the expected score for the next states, in batch (better performance)
             next_states = np.array([x[1] for x in batch])
             next_qs = [x[0] for x in self.model.predict(next_states)]
-            # print(3)
             x = []
             y = []
 
@@ -172,14 +159,12 @@ class DQNAgent:
 
                 x.append(state)
                 y.append(new_q)
-            # print(4)
 
                
-            self.model.fit(np.array(x), np.array(y), batch_size=batch_size, epochs=epochs, verbose=0) # , callbacks = [self.cp_callbacks]
+            self.model.fit(np.array(x), np.array(y), batch_size=batch_size, epochs=epochs, verbose=0)
             # Update the exploration variable
             if self.epsilon > self.epsilon_min:
                 self.epsilon -= self.epsilon_decay
-                # print("Trained...")
 
 
 

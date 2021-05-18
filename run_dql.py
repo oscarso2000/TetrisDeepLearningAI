@@ -48,7 +48,7 @@ def dqn():
         print(1)
         cur_state = ai.tetris_app.get_state()
         ai.set_board(cur_state["board"])
-        ai.set_stone(cur_state["stone"], cur_state["stone_x"], cur_state["stone_y"])
+        ai.set_tetromino(cur_state["tetromino"], cur_state["tetromino_x"], cur_state["tetromino_y"])
         print(2)
         current_state = ai._get_board_props()
         # done = False
